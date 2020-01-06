@@ -63,6 +63,8 @@ internal class DefaultGatewayConnection(private val scope: CoroutineScope) : Gat
     }
 
     private suspend fun receiveLoop() {
+        handshake()
+
         while (scope.isActive) {
             val payload = receive() ?: break
             onPayload.fire(payload)
