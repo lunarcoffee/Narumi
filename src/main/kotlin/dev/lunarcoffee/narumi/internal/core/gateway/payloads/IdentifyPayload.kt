@@ -6,9 +6,9 @@ import dev.lunarcoffee.narumi.api.model.Presence
 internal class IdentifyPayload(override val data: Data) : GatewayPayload<IdentifyPayload.Data> {
     override val opcode = PayloadType.IDENTIFY.opcode
 
-    internal inner class Data(
+    internal class Data(
         internal val token: String,
-        internal val properties: Map<String, String>,
+        internal val properties: Map<String, String>, // TODO: Consider a Data.Properties or similar?
         internal val presence: Presence
     ) {
         @SerializedName("large_threshold")

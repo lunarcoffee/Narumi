@@ -1,14 +1,20 @@
 package dev.lunarcoffee.narumi.internal.core.gateway
 
+import dev.lunarcoffee.narumi.api.model.ActivityType
+import dev.lunarcoffee.narumi.api.model.DefaultActivity
+import dev.lunarcoffee.narumi.api.model.DefaultPresence
+import dev.lunarcoffee.narumi.api.model.PresenceStatus
 import dev.lunarcoffee.narumi.internal.core.gateway.heartbeater.GatewayHeartbeater
 import dev.lunarcoffee.narumi.internal.core.gateway.payloads.GatewayPayload
 import dev.lunarcoffee.narumi.internal.core.gateway.payloads.HelloPayload
+import dev.lunarcoffee.narumi.internal.core.gateway.payloads.IdentifyPayload
 import dev.lunarcoffee.narumi.internal.core.gateway.payloads.decoder.PayloadDecoder
 import dev.lunarcoffee.narumi.internal.util.JsonConverter
 import dev.lunarcoffee.narumi.internal.util.ZlibInflater
 import dev.lunarcoffee.narumi.internal.util.events.DefaultEvent
 import io.ktor.client.HttpClient
 import io.ktor.client.features.websocket.webSocketSession
+import io.ktor.client.request.url
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.WebSocketSession
 import io.ktor.http.cio.websocket.readText
@@ -16,10 +22,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.runBlocking
-import java.net.URI
 import kotlin.concurrent.thread
 
-internal class DefaultGatewayConnection(private val scope: CoroutineScope) : GatewayConnection() {
+internal class DefaultGatewayConnection(
+    private val token: String,
+    private val scope: CoroutineScope
+) : GatewayConnection() {
+
     override val onPayload = DefaultEvent<GatewayPayload<*>>()
     override val onClose = DefaultEvent<Unit>()
 
@@ -30,8 +39,8 @@ internal class DefaultGatewayConnection(private val scope: CoroutineScope) : Gat
     private val jsonConverter = JsonConverter()
     private val inflater = ZlibInflater()
 
-    override suspend fun connect(uri: URI) {
-        ws = client.webSocketSession(host = uri.host, port = uri.port, path = uri.path)
+    override suspend fun connect(url: String) {
+        ws = client.webSocketSession { url(url) }
         receiveLoop()
     }
 
@@ -51,7 +60,7 @@ internal class DefaultGatewayConnection(private val scope: CoroutineScope) : Gat
     private suspend fun handshake() {
         val hello = receive()
         if (hello !is HelloPayload)
-            throw IllegalStateException() // TODO:
+            throw IllegalStateException("Unexpected payload!")
 
         thread(true) {
             runBlocking {
@@ -59,7 +68,20 @@ internal class DefaultGatewayConnection(private val scope: CoroutineScope) : Gat
             }
         }
 
-        // TODO: send identify
+        // TODO:
+        val identify = IdentifyPayload(
+            IdentifyPayload.Data(
+                token,
+                mapOf("\$os" to "linux", "\$browser" to "narumi", "\$device" to "narumi"),
+                DefaultPresence(
+                    null,
+                    DefaultActivity("the chat", ActivityType.LISTENING),
+                    PresenceStatus.DO_NOT_DISTURB,
+                    false
+                )
+            )
+        )
+        send(identify)
     }
 
     private suspend fun receiveLoop() {

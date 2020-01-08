@@ -1,8 +1,8 @@
 package dev.lunarcoffee.narumi.api.model
 
-class UserPresence(
+class DefaultPresence(
     override val since: Int?,
     override val game: Activity?,
-    override val status: String,
+    override val status: PresenceStatus,
     override val afk: Boolean
 ) : Presence

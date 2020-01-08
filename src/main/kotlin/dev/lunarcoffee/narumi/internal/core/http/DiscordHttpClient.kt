@@ -9,7 +9,7 @@ internal class DiscordHttpClient {
 
     internal suspend fun getGateway(): String {
         val response = client.get<Map<String, String>>("$URI_ROOT/gateway")
-        return response["url"]!!
+        return response["url"]!! + "/?v=6&encoding=json&compress=zlib-stream"
     }
 
     companion object {
